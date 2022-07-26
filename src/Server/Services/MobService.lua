@@ -89,7 +89,7 @@ function MobService:KnitStart()
                 local kill_id = hum:GetAttribute("LastDamage")
                 local killer = Players:GetPlayerByUserId(kill_id)
                 if killer then
-                    local sos = killer:FindFirstChild("S/Os", true)
+                    local sos = killer:FindFirstChild("H/Rs", true)
                     if sos then
                         sos.Value += 1
                     end

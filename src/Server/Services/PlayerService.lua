@@ -58,7 +58,7 @@ function PlayerService:KnitStart()
         leaderstats.Parent = player
 
         local sos = Instance.new("IntValue")
-        sos.Name = "S/Os"
+        sos.Name = "H/Rs"
         sos.Value = 0
         sos.Parent = leaderstats
 
@@ -68,6 +68,7 @@ function PlayerService:KnitStart()
             local playerHumanoid = character:WaitForChild("Humanoid", 3)
             playerHumanoid.Died:Connect(function()
                 task.delay(Players.RespawnTime, function()
+                    sos.Value = 0
                     player:LoadCharacter()
                 end)
             end)
