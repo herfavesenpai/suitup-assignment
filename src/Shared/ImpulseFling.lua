@@ -7,18 +7,21 @@ local Knit = require(ReplicatedStorage.Packages.Knit)
 
 local thisRandom = Random.new(os.time())
 
-local BASE_MASS = 10.526498794556 -- DON'T CHANGE THIS!!
+local BASE_MASS = 8.77214241027832 -- DON'T CHANGE THIS!!
 
-local HEIGHT_FACTOR = 420
-local YEET_FACTOR = 420
+local HEIGHT_FACTOR = 16
+local YEET_FACTOR = 50
 
-return function(model: Model, direction: Vector3)
+if game:GetService("RunService"):IsServer() then
+    -- HEIGHT_FACTOR *= 3
+    -- YEET_FACTOR *= 3
+end
+
+return function(model: Model, direction: Vector3, ratio: number)
     if model.PrimaryPart then
-        local assemblyMass = model.PrimaryPart.AssemblyMass
-        local massRatio = 5 -- (assemblyMass / BASE_MASS)
-        print("MASS RATIO:", massRatio)
-        local adjustedHeight = HEIGHT_FACTOR * massRatio
-        local adjustedYeet = YEET_FACTOR * massRatio
+
+        local adjustedHeight = HEIGHT_FACTOR * (ratio * 0.5 or 1)
+        local adjustedYeet = YEET_FACTOR * (ratio * 0.5 or 1)
 
         -- remove any BodyMover forces before fling
         for _, v in ipairs(model.PrimaryPart:GetChildren()) do
@@ -46,9 +49,9 @@ return function(model: Model, direction: Vector3)
             if zdir <= 0 then zdir = -1 else zdir = 1 end
 
             model.PrimaryPart:ApplyAngularImpulse(Vector3.new(
-                xdir * adjustedYeet,
-                ydir * adjustedYeet,
-                zdir * adjustedYeet
+                xdir * adjustedYeet * 0.7,
+                ydir * adjustedYeet * 0.7,
+                zdir * adjustedYeet * 0.7
             ))
         end)
     end

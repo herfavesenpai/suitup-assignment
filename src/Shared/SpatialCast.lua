@@ -102,7 +102,7 @@ function SpatialCast:Activate(size: Vector2, range: number, axis: string, active
         -- parse
         for _, object in ipairs(objects) do
             if object:IsA("BasePart") then
-                local model = object:FindFirstAncestorOfClass("Model")
+                local model = object:FindFirstAncestorOfClass("Actor") or object:FindFirstAncestorOfClass("Model")
                 if model then
                     if CollectionService:HasTag(model, "TargetableCharacter") then
                         if not table.find(self._alreadyHit, model) then

@@ -6,6 +6,7 @@
     Description: Manage player spawning and interactions with the server involving data
 ]]
 local Players = game:GetService("Players")
+local PhysicsService = game:GetService("PhysicsService")
 
 local ServerStorage = game:GetService("ServerStorage")
 local Modules = ServerStorage:WaitForChild("Modules")
@@ -51,6 +52,16 @@ function PlayerService:KnitStart()
         self._players[player] = newContainer
         self.ContainerCreated:Fire(player, newContainer)
 
+        -- create leader stats
+        local leaderstats = Instance.new("Folder")
+        leaderstats.Name = "leaderstats"
+        leaderstats.Parent = player
+
+        local sos = Instance.new("IntValue")
+        sos.Name = "S/Os"
+        sos.Value = 0
+        sos.Parent = leaderstats
+
             -- initialize data
             -- spawn player
         player.CharacterAdded:Connect(function(character)
@@ -60,6 +71,15 @@ function PlayerService:KnitStart()
                     player:LoadCharacter()
                 end)
             end)
+
+            task.wait()
+            buildRagdoll(playerHumanoid)
+
+            for _, v in ipairs(character:GetChildren()) do
+                if v:IsA("BasePart") then
+                    PhysicsService:SetPartCollisionGroup(v, "Players")
+                end
+            end
 
             self.CharacterLoadedEvent:Fire(player, character)
             self.Client.CharacterLoaded:Fire(player, character)

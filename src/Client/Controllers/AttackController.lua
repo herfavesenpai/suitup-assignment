@@ -6,20 +6,26 @@
 ]]
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = game.Players.LocalPlayer
 local PlayerScripts = game.Players.LocalPlayer:WaitForChild("PlayerScripts")
 local Modules = PlayerScripts:WaitForChild("Modules")
 
+
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local SpatialCast = require(Shared.SpatialCast)
+local ImpulseFling = require(Shared.ImpulseFling)
 
 local Packages = ReplicatedStorage.Packages
 local Knit = require(Packages.Knit)
 local Maid = require(Packages.Maid)
+local WaitFor = require(Packages.WaitFor)
 
 local AttackController = Knit.CreateController { Name = "AttackController" }
 
 --== KNIT SINGLETON DECLARATIONS ==--
 local CharacterController, WeaponController
+local MobService
 
 --== CONSTANTS ==--
 local MIN_CHARGE_TIME = 7/60 -- in seconds
@@ -28,25 +34,57 @@ local MAX_CHARGE_HOLD = 2.5
 local MAX_COOLDOWN = 1.1
 local MIN_COOLDOWN = 0.2
 
+
+local BASE_HITBOX = {
+    Vector2.new(3, 5), -- size
+    5, -- range
+    0.3
+}
+
+local BASE_DAMAGE = 10
+local MAX_CHARGE_MULT = 10
+
 function AttackController:ProcessAttack(chargeTime)
     -- could *technically* be abused by sending your own charge time rather than the actual, but 
     -- this is setup in the event that self._chargeTime is reset before this method is called
 
     -- distinguish between instant attack or charged attack
     local animName = "ChargeSlam"
+    local chargeRatio = 1
     if chargeTime <= MIN_CHARGE_TIME then
         -- perform instant attack
             -- play animation
             -- calculate hit
-        print("uncharged hit!")
         animName = "UnchargedAttack"
+    else
+        chargeRatio += chargeTime / MAX_CHARGE_TIME
     end
 
     WeaponController:EnableTrail(true)
     CharacterController:PlayAnimation(animName)
 
-    task.delay(3/60, function()
-        -- TODO: listen for hits and knockback enemies
+    local activeTime = BASE_HITBOX[3] * chargeRatio
+
+    local thisMaid = Maid.new()
+
+    local hits = {}
+    thisMaid:Add(self.Hitbox.OnHit:Connect(function(mob)
+        table.insert(hits, mob)
+        mob:SetAttribute("LastRatio", chargeRatio)
+    end))
+
+    task.wait(7/60)
+    self.Hitbox:Activate(
+        Vector2.new(BASE_HITBOX[1].X * chargeRatio * 2, BASE_HITBOX[1].Y * chargeRatio * 0.6),
+        BASE_HITBOX[2] * chargeRatio,
+        "Z",
+        activeTime
+    )
+
+    task.delay(activeTime, function()
+        MobService:DamageMobs(hits, chargeRatio)
+        WeaponController:AdjustSize(1)
+        thisMaid:Destroy()
     end)
 end
 
@@ -82,7 +120,6 @@ function AttackController:KnitStart()
     UserInputService.InputBegan:Connect(function(input)
         -- check for attack cooldown
         if self._attackCooldown > 0 then
-            print("on cooldown:", self._attackCooldown)
             return
         end
         
@@ -108,6 +145,10 @@ function AttackController:KnitStart()
                 WeaponController:EnableTrail(false)
             end))
         end
+
+        WaitFor.Child(character, "HumanoidRootPart"):andThen(function(root)
+            self.Hitbox = SpatialCast.new(root, false)
+        end)
     end)
 
     -- update loop for attack charging
@@ -126,25 +167,26 @@ function AttackController:KnitStart()
                 self._isCharging = false
             elseif self._chargeTime > MIN_CHARGE_TIME then
                 if not CharacterController._animationPlayer:GetTrack("ChargeLoop").IsPlaying then
-                    print("PLAY LOOP")
                     CharacterController:PlayAnimation("ChargeLoop")
                 end
+    
+                local clampedCharge = math.clamp(self._chargeTime, MIN_CHARGE_TIME, MAX_CHARGE_TIME)
+                WeaponController:AdjustSize(1 + (clampedCharge / MAX_CHARGE_TIME))
             end
 
         -- apply charge release
         elseif not self._isCharging and self._chargeTime > 0 then
             CharacterController._animationPlayer:StopTrack("ChargeLoop")
             -- call attack method
-            self:ProcessAttack(self._chargeTime)
+            local clampedCharge = math.clamp(self._chargeTime, MIN_CHARGE_TIME, MAX_CHARGE_TIME)
+            self:ProcessAttack(clampedCharge)
 
             -- place attack on cooldown based on "type" of attack, reset _chargeTime
             if self._chargeTime <= MIN_CHARGE_TIME then
                 self._attackCooldown = MIN_COOLDOWN
             else
-                local clampedCharge = math.clamp(self._chargeTime, MIN_CHARGE_TIME, MAX_CHARGE_TIME)
                 local ratio = clampedCharge / MAX_CHARGE_TIME
                 self._attackCooldown = ratio * MAX_COOLDOWN
-                print("cooldown for:", self._attackCooldown)
             end
 
             self._chargeTime = 0
@@ -162,6 +204,8 @@ function AttackController:KnitInit()
     
     CharacterController = Knit.GetController("CharacterController")
     WeaponController = Knit.GetController("WeaponController")
+
+    MobService = Knit.GetService("MobService")
 end
 
 
