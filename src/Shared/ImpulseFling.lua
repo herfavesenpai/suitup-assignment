@@ -32,9 +32,9 @@ return function(model: Model, direction: Vector3)
         model.PrimaryPart.AssemblyLinearVelocity = Vector3.new()
         
         -- -- apply forces!
-        -- model.PrimaryPart:ApplyImpulse(
-        --     Vector3.new(0, adjustedHeight, 0) + (direction * adjustedYeet)
-        -- )
+        model.PrimaryPart:ApplyImpulse(
+            Vector3.new(0, adjustedHeight, 0) + (direction * adjustedYeet)
+        )
 
         task.delay(1/60, function()
             local xdir = thisRandom:NextNumber(-1, 2)
@@ -45,11 +45,11 @@ return function(model: Model, direction: Vector3)
             if ydir <= 0 then ydir = -1 else ydir = 1 end
             if zdir <= 0 then zdir = -1 else zdir = 1 end
 
-            -- model.PrimaryPart:ApplyAngularImpulse(Vector3.new(
-            --     xdir * adjustedYeet,
-            --     ydir * adjustedYeet,
-            --     zdir * adjustedYeet
-            -- ))
+            model.PrimaryPart:ApplyAngularImpulse(Vector3.new(
+                xdir * adjustedYeet,
+                ydir * adjustedYeet,
+                zdir * adjustedYeet
+            ))
         end)
     end
 end
